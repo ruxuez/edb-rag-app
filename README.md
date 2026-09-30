@@ -20,7 +20,10 @@ by clicking buttons instead of typing CLI commands.
 - An EDB account token (used only at build time to install `aidb`/`pgfs`
   from EDB's package repo — see [Repository information](https://www.enterprisedb.com/docs/postgres_distributed_for_kubernetes/latest/private_edb_registries/#repository-information)
   for how to get one)
-- An NVIDIA API key (for embeddings and completions via NVIDIA NIM)
+- An NVIDIA API key (for embeddings and completions via NVIDIA NIM) — get one
+  free at [build.nvidia.com/explore/discover](https://build.nvidia.com/explore/discover):
+  sign in, open any model card, and copy the API key from the "Get API Key"
+  panel (any model's key works the same way for this demo)
 
 ## Quickstart
 
