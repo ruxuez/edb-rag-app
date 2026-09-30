@@ -1,0 +1,8 @@
+psycopg2-binary
+python-dotenv
+streamlit
+Pillow
+fastapi
+uvicorn[standard]
+boto3
+python-multipart

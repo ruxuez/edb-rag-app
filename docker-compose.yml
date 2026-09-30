@@ -1,0 +1,69 @@
+services:
+  postgres:
+    # Built from postgres/Dockerfile: EDB's own CloudNativePG operand image
+    # (docker.enterprisedb.com/k8s/postgresql:18.6-standard-ubi9 — bare
+    # Postgres 18, no entrypoint, no aidb/pgfs) plus aidb+pgfs installed from
+    # EDB's package repo, plus our own entrypoint script. Needs
+    # EDB_SUBSCRIPTION_TOKEN in .env (same token used for `docker login
+    # docker.enterprisedb.com`) to build.
+    build:
+      context: ./postgres
+      args:
+        PG_BASE_IMAGE: ${PG_BASE_IMAGE:-docker.enterprisedb.com/k8s/postgresql:18.6-standard-ubi9}
+        EDB_SUBSCRIPTION_TOKEN: ${EDB_SUBSCRIPTION_TOKEN}
+    image: aidb-rag-postgres:latest
+    container_name: aidb-rag-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      # Host port 5432 was already taken by another local container, so this
+      # demo publishes on 5434 instead. Internally, other containers on the
+      # compose network still reach it at postgres:5432 (see DATABASE_URL
+      # below) — this only affects connecting from your host machine.
+      - "5434:5432"
+    # No named volume by design (ephemeral) so every ./00-provision.sh starts
+    # from the same known-good state, same as this demo's MinIO service.
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: aidb-rag-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    restart: unless-stopped
+
+  webapp:
+    build:
+      context: .
+      dockerfile: webapp/Dockerfile
+    image: aidb-rag-webapp:latest
+    container_name: aidb-rag-webapp
+    depends_on:
+      - postgres
+      - minio
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/demo?sslmode=disable
+      # Name of a database that already exists on a fresh instance, used to
+      # bootstrap-create the "demo" database above. "postgres" is what
+      # postgres/docker-entrypoint.sh's initdb creates by default.
+      BOOTSTRAP_DB: postgres
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      # Only takes effect if set in .env — otherwise create_pipelines.py's
+      # own defaults apply (see README's "NVIDIA NIM model churn" note).
+      NIM_EMBEDDINGS_MODEL: ${NIM_EMBEDDINGS_MODEL:-}
+      NIM_COMPLETIONS_MODEL: ${NIM_COMPLETIONS_MODEL:-}
+      CATALOGS_BUCKET_URI: s3://aidb-demo-catalogs
+      S3_ENDPOINT: http://minio:9000
+      S3_ALLOW_HTTP: "true"
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_REGION: us-east-1
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

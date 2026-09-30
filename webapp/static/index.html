@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>aidb RAG Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hdr">
+    <div class="hdr-left">
+      <img src="edb_logo.png" alt="EDB" class="logo" />
+      <h1>aidb <span>RAG</span> Demo — ACME Bank</h1>
+    </div>
+    <div class="live-badge">LIVE</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="setup">Setup</button>
+    <button class="tab-btn" data-tab="chat">Chat</button>
+    <button class="tab-btn" data-tab="upload">Upload</button>
+  </nav>
+
+  <main>
+    <!-- Overview -->
+    <section id="overview" class="tab-panel active">
+      <div class="card">
+        <div class="ov-hdr">
+          <h2>Live status</h2>
+          <button class="runbtn secondary" id="refresh-status">Refresh</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Database</div>
+            <div class="value" id="status-db">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Extensions</div>
+            <div class="value" id="status-extensions" style="font-size:14px">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">customer_feedback rows</div>
+            <div class="value" id="status-feedback-rows">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Catalog files</div>
+            <div class="value" id="status-catalog-files">—</div>
+          </div>
+        </div>
+        <div class="pipelines-wrap">
+          <div class="sql-label">Pipelines</div>
+          <table id="status-pipelines">
+            <thead>
+              <tr><th>Name</th><th>Source</th><th>Destination</th><th>Auto-processing</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Setup -->
+    <section id="setup" class="tab-panel">
+      <p class="setup-intro">Every step below shows its SQL immediately — read it before you click Run. After running, the block updates with the exact statements actually executed (redacted of any credentials) and the real output.</p>
+      <div id="setup-reinitialize"></div>
+      <div id="setup-steps"></div>
+
+      <div class="card sql-console">
+        <div class="ov-hdr">
+          <h2>SQL Console</h2>
+          <button class="runbtn" id="sql-run-btn">▶ Run</button>
+        </div>
+        <div class="sql-console-body">
+          <p class="setup-intro" style="margin-top:0">Run any SQL directly against the demo database — explore <code>aidb.*</code>/<code>pgfs.*</code> catalogs, inspect tables, or try your own queries. One statement per run.</p>
+          <textarea id="sql-input" rows="4" spellcheck="false" placeholder="SELECT * FROM aidb.pipelines;"></textarea>
+          <div class="chat-hint" style="text-align:left;padding-top:4px">⌘/Ctrl+Enter to run</div>
+          <div class="sql-label" style="margin-top:12px">Result</div>
+          <div id="sql-result"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section id="chat" class="tab-panel">
+      <div class="chat-wrap">
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input-bar">
+          <div class="chat-input-shell">
+            <textarea id="chat-input" rows="1" placeholder="Ask about ACME's products or customer feedback..."></textarea>
+            <button class="send-btn" id="chat-send">➤</button>
+          </div>
+          <div class="chat-hint">Enter to send · Shift+Enter for a new line</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload -->
+    <section id="upload" class="tab-panel">
+      <div class="card upload-panel">
+        <h2 style="margin:0 0 6px;font-size:15px">Upload a new product catalog PDF</h2>
+        <p>Dropped here, it lands in the MinIO bucket that <code>catalogs_pipeline</code>
+           polls (Background auto-processing, 1 minute) — ask about it in the
+           Chat tab once it's picked up.</p>
+        <form id="upload-form" class="upload-row">
+          <input id="upload-input" type="file" accept="application/pdf" />
+          <button type="submit" class="runbtn">Upload</button>
+        </form>
+        <div class="divider-or">— or —</div>
+        <div class="upload-row">
+          <button id="upload-sample-btn" class="runbtn secondary">Use bundled sample: acme_2026_expansion_catalog.pdf</button>
+        </div>
+        <div class="sql-label">Result</div>
+        <div class="output-block" id="upload-output"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
