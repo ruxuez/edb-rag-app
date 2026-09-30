@@ -1,12 +1,14 @@
 // ---------- tabs ----------
+function activateTab(tabName) {
+  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabName));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === tabName));
+  if (tabName === "overview") refreshStatus();
+}
 document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.tab).classList.add("active");
-    if (btn.dataset.tab === "overview") refreshStatus();
-  });
+  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+});
+document.querySelectorAll("[data-goto-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => activateTab(btn.dataset.gotoTab));
 });
 
 function esc(s) {
@@ -49,6 +51,81 @@ async function refreshStatus() {
 document.getElementById("refresh-status").addEventListener("click", refreshStatus);
 refreshStatus();
 
+// ---------- overview: create database ----------
+function actionCardHtml(info, runLabel) {
+  const why = info.why ? `<div class="step-why"><strong>Why:</strong> ${esc(info.why)}</div>` : "";
+  return `
+    <div class="step-hdr">
+      <span class="step-n">DB</span>
+      <div class="step-titles">
+        <h3>${esc(info.title)}</h3>
+        <div class="d">${esc(info.description)}</div>
+      </div>
+      <button class="runbtn" data-run>${esc(runLabel)}</button>
+    </div>
+    <div class="step-body">
+      ${why}
+      <div class="sql-label">SQL <span class="sql-tag preview" data-sql-tag>preview</span></div>
+      <div class="sql-block" data-sql></div>
+      <div class="output-wrap" data-output-wrap>
+        <div class="sql-label">Output</div>
+        <div class="output-block" data-output></div>
+      </div>
+    </div>
+  `;
+}
+
+async function initCreateDatabaseCard() {
+  const container = document.getElementById("overview-create-database");
+  let info;
+  try {
+    const res = await fetch("/api/overview/create-database");
+    info = await res.json();
+  } catch (e) {
+    container.textContent = "Failed to load: " + e.message;
+    return;
+  }
+  const card = document.createElement("div");
+  card.className = "step";
+  card.innerHTML = actionCardHtml(info, "▶ Create database");
+  container.appendChild(card);
+
+  const sqlEl = card.querySelector("[data-sql]");
+  renderSql(sqlEl, info.sql);
+
+  const btn = card.querySelector("[data-run]");
+  const tagEl = card.querySelector("[data-sql-tag]");
+  const outWrap = card.querySelector("[data-output-wrap]");
+  const outEl = card.querySelector("[data-output]");
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span> Running…';
+    outWrap.classList.add("show");
+    outEl.className = "output-block";
+    outEl.textContent = "Running…";
+    try {
+      const res = await fetch("/api/overview/create-database", { method: "POST" });
+      const data = await res.json();
+      renderSql(sqlEl, data.sql.length ? data.sql : info.sql);
+      tagEl.textContent = "executed";
+      tagEl.classList.remove("preview");
+      tagEl.classList.add("executed");
+      outEl.textContent = data.output + (data.error ? "\nError: " + data.error : "");
+      outEl.classList.add(data.ok ? "ok" : "err");
+      refreshStatus();
+    } catch (e) {
+      outEl.textContent = "Request failed: " + e.message;
+      outEl.classList.add("err");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+}
+initCreateDatabaseCard();
+
 // ---------- setup steps ----------
 function renderSql(container, statements, query) {
   if (!statements || !statements.length) {
@@ -70,6 +147,7 @@ function stepCardHtml(step) {
        </div>`
     : "";
   const extra = step.id === "seed-catalog-pdf" ? '<div class="inspect-extra" data-inspect-extra></div>' : "";
+  const why = step.why ? `<div class="step-why"><strong>Why:</strong> ${esc(step.why)}</div>` : "";
   return `
     <div class="step-hdr">
       <span class="step-n">${step.n}</span>
@@ -80,6 +158,7 @@ function stepCardHtml(step) {
       <button class="runbtn" data-run>▶ Run</button>
     </div>
     <div class="step-body">
+      ${why}
       ${queryRow}
       <div class="sql-label">SQL <span class="sql-tag preview" data-sql-tag>preview</span></div>
       <div class="sql-block" data-sql></div>
@@ -223,6 +302,9 @@ async function initSetupSteps() {
         if (step.id === "seed-catalog-pdf" && data.ok) {
           extraEl.innerHTML = `<div class="sql-label">Catalog PDF</div>
             <iframe class="pdf-frame" src="/api/catalog-pdf/acme_product_catalog.pdf"></iframe>`;
+        }
+        if (step.id === "register-completions-model" && data.ok) {
+          document.getElementById("setup-next-banner").style.display = "block";
         }
         refreshStatus();
       } catch (e) {
@@ -396,7 +478,19 @@ chatSend.addEventListener("click", sendMessage);
 
 appendMessage("bot", "Hi! I'm ACME Bank's assistant. Ask me about our products or customer feedback.");
 
+document.querySelectorAll(".suggestion-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    chatInput.value = btn.dataset.q;
+    autoResize();
+    sendMessage();
+  });
+});
+
 // ---------- upload ----------
+function revealInspectCard() {
+  document.getElementById("upload-inspect-card").style.display = "block";
+}
+
 document.getElementById("upload-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = document.getElementById("upload-input");
@@ -411,6 +505,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     const data = await res.json();
     out.textContent = data.ok ? `Uploaded to ${data.key}` : `Error: ${data.error || "unknown"}`;
     out.classList.add(data.ok ? "ok" : "err");
+    if (data.ok) revealInspectCard();
   } catch (err) {
     out.textContent = "Request failed: " + err.message;
     out.classList.add("err");
@@ -426,8 +521,63 @@ document.getElementById("upload-sample-btn").addEventListener("click", async () 
     const data = await res.json();
     out.textContent = data.ok ? `Uploaded ${data.filename} to ${data.key}` : `Error: ${data.error || "unknown"}`;
     out.classList.add(data.ok ? "ok" : "err");
+    if (data.ok) revealInspectCard();
   } catch (err) {
     out.textContent = "Request failed: " + err.message;
     out.classList.add("err");
+  }
+});
+
+document.querySelectorAll("[data-inspect]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const kind = btn.dataset.inspect; // "volume-content" | "pipeline-metrics"
+    const out = document.getElementById(kind === "volume-content" ? "inspect-volume-output" : "inspect-metrics-output");
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span> Running…';
+    out.className = "output-block";
+    out.textContent = "Running…";
+    try {
+      const res = await fetch(`/api/inspect/${kind}`, { method: "POST" });
+      const data = await res.json();
+      out.textContent = data.output + (data.error ? "\nError: " + data.error : "");
+      out.classList.add(data.ok ? "ok" : "err");
+      if (kind === "pipeline-metrics" && data.ok) {
+        const match = data.output.match(/catalogs_pipeline'[^}]*'count\(source records\)': (\d+)/);
+        const hint = document.getElementById("inspect-metrics-hint");
+        if (match && parseInt(match[1], 10) >= 2) {
+          hint.style.display = "block";
+        }
+      }
+    } catch (e) {
+      out.textContent = "Request failed: " + e.message;
+      out.classList.add("err");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+});
+
+document.getElementById("insert-feedback-btn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  const out = document.getElementById("insert-feedback-output");
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.innerHTML = '<span class="spinner"></span> Running…';
+  out.className = "output-block";
+  out.textContent = "Running…";
+  try {
+    const res = await fetch("/api/inspect/insert-feedback", { method: "POST" });
+    const data = await res.json();
+    out.textContent = data.output + (data.error ? "\nError: " + data.error : "");
+    out.classList.add(data.ok ? "ok" : "err");
+    refreshStatus();
+  } catch (err) {
+    out.textContent = "Request failed: " + err.message;
+    out.classList.add("err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
   }
 });

@@ -2,7 +2,7 @@ import argparse
 from enum import Enum
 from dotenv import load_dotenv
 
-from commands.create_db import create_db
+from commands.create_db import create_database, create_extensions
 from commands.create_pipelines import (
     create_catalog_pipeline,
     create_catalog_storage,
@@ -14,6 +14,7 @@ from commands.create_pipelines import (
     retrieve_catalog_demo,
     retrieve_feedback_demo,
 )
+from commands.inspect import insert_sample_feedback, list_catalog_volume, pipeline_metrics
 from commands.reinitialize import reinitialize
 from commands.seed_data import inspect_feedback_table, seed_catalog_pdf, seed_feedback_table
 
@@ -21,7 +22,8 @@ load_dotenv()
 
 
 class Command(Enum):
-    CREATE_DB = "create-db"
+    CREATE_DATABASE = "create-database"
+    CREATE_EXTENSIONS = "create-extensions"
     CHAT = "chat"
     LIST_MODELS = "list-models"
     REGISTER_EMBEDDING_MODEL = "register-embedding-model"
@@ -36,12 +38,16 @@ class Command(Enum):
     RETRIEVE_CATALOG = "retrieve-catalog"
     REGISTER_COMPLETIONS_MODEL = "register-completions-model"
     REINITIALIZE = "reinitialize"
+    LIST_VOLUME_CONTENT = "list-volume-content"
+    PIPELINE_METRICS = "pipeline-metrics"
+    INSERT_SAMPLE_FEEDBACK = "insert-sample-feedback"
 
 
 # Commands that just take (args, sql_log=None) and print their own output —
 # no special-casing needed for these in main() below.
 SIMPLE_COMMANDS = {
-    Command.CREATE_DB.value: create_db,
+    Command.CREATE_DATABASE.value: create_database,
+    Command.CREATE_EXTENSIONS.value: create_extensions,
     Command.LIST_MODELS.value: list_models,
     Command.REGISTER_EMBEDDING_MODEL.value: register_embedding_model,
     Command.SEED_FEEDBACK_TABLE.value: seed_feedback_table,
@@ -53,6 +59,9 @@ SIMPLE_COMMANDS = {
     Command.ENABLE_CATALOG_AUTO_PROCESSING.value: enable_catalog_auto_processing,
     Command.REGISTER_COMPLETIONS_MODEL.value: register_completions_model,
     Command.REINITIALIZE.value: reinitialize,
+    Command.LIST_VOLUME_CONTENT.value: list_catalog_volume,
+    Command.PIPELINE_METRICS.value: pipeline_metrics,
+    Command.INSERT_SAMPLE_FEEDBACK.value: insert_sample_feedback,
 }
 
 
@@ -65,7 +74,8 @@ def main():
         help="Display available subcommands",
     )
 
-    subparsers.add_parser(Command.CREATE_DB.value, help="Create the database and install aidb/pgfs extensions")
+    subparsers.add_parser(Command.CREATE_DATABASE.value, help="Create the empty demo database")
+    subparsers.add_parser(Command.CREATE_EXTENSIONS.value, help="Install aidb/pgfs into the demo database")
 
     # chat command — commands.chat runs Streamlit UI code at import time, so
     # it's deliberately not imported at module level (that would make every
@@ -119,6 +129,17 @@ def main():
         Command.REINITIALIZE.value,
         help="Reset to the initial starting point: drop aidb/pgfs and all pipeline-created tables, "
         "keeping customer_feedback and the uploaded catalog PDF(s)",
+    )
+
+    subparsers.add_parser(
+        Command.LIST_VOLUME_CONTENT.value, help="List what pgfs currently sees in the catalogs_volume bucket"
+    )
+    subparsers.add_parser(
+        Command.PIPELINE_METRICS.value, help="Show per-pipeline progress (source/destination counts, status)"
+    )
+    subparsers.add_parser(
+        Command.INSERT_SAMPLE_FEEDBACK.value,
+        help="Insert one sample customer_feedback row to demo Live auto-processing",
     )
 
     args = parser.parse_args()

@@ -9,7 +9,9 @@ from db import get_connection
 BOOTSTRAP_DB = os.getenv("BOOTSTRAP_DB", "postgres")
 
 
-def create_db(args, sql_log=None):
+def create_database(args=None, sql_log=None):
+    """Overview tab's entry point: create the empty demo database itself,
+    before anything else — no extensions, no tables yet."""
     target_db = urlparse(os.getenv("DATABASE_URL")).path.lstrip("/")
 
     conn = get_connection(dbname=BOOTSTRAP_DB, sql_log=sql_log)
@@ -24,21 +26,37 @@ def create_db(args, sql_log=None):
         cursor = conn.cursor()
         cursor.execute(sql.SQL("CREATE DATABASE {};").format(sql.Identifier(target_db)))
         cursor.close()
-        print("Database created.")
+        print(f'Database "{target_db}" created.')
     else:
         print(f'Database "{target_db}" already exists.')
 
     conn.close()
+    return sql_log
+
+
+def create_extensions(args=None, sql_log=None):
+    """Setup step 1: install aidb/pgfs into the demo database (which must
+    already exist — see create_database, run from the Overview tab)."""
+    target_db = urlparse(os.getenv("DATABASE_URL")).path.lstrip("/")
+
+    bootstrap_conn = get_connection(dbname=BOOTSTRAP_DB, sql_log=sql_log)
+    bootstrap_conn.autocommit = True
+    with bootstrap_conn.cursor() as cursor:
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (target_db,))
+        database_exists = cursor.fetchone()
+    bootstrap_conn.close()
+
+    if not database_exists:
+        raise RuntimeError(
+            f'Database "{target_db}" doesn\'t exist yet — go to the Overview tab '
+            'and click "Create database" first.'
+        )
 
     conn = get_connection(sql_log=sql_log)
-    print("Connection is successful!")
     conn.autocommit = True
-
-    cursor = conn.cursor()
-    cursor.execute("CREATE EXTENSION IF NOT EXISTS aidb cascade;")
-    cursor.execute("CREATE EXTENSION IF NOT EXISTS pgfs;")
-
-    cursor.close()
+    with conn.cursor() as cursor:
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS aidb cascade;")
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS pgfs;")
     conn.close()
-    print("Database setup completed.")
+    print("aidb/pgfs extensions installed.")
     return sql_log

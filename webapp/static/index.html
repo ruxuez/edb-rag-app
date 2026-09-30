@@ -6,118 +6,188 @@
 <title>aidb RAG Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
-  <header class="hdr">
-    <div class="hdr-left">
-      <img src="edb_logo.png" alt="EDB" class="logo" />
-      <h1>aidb <span>RAG</span> Demo — ACME Bank</h1>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="edb_logo.png" alt="EDB" class="logo" />
+        <div class="brand-text">aidb <span>RAG</span> Demo<br />ACME Bank</div>
+      </div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="overview">1. Overview</button>
+        <button class="tab-btn" data-tab="setup">2. Setup</button>
+        <button class="tab-btn" data-tab="chat">3. Chat</button>
+        <button class="tab-btn" data-tab="upload">4. Upload</button>
+      </nav>
+      <div class="live-badge">LIVE</div>
+    </aside>
+
+    <div class="content-area">
+      <main>
+        <!-- Overview -->
+        <section id="overview" class="tab-panel active">
+          <p class="setup-intro">Start here. Create the database below, then move to the <strong>Setup</strong> tab.</p>
+
+          <div id="overview-create-database"></div>
+
+          <div class="card">
+            <div class="ov-hdr">
+              <h2>Live status</h2>
+              <button class="runbtn secondary" id="refresh-status">Refresh</button>
+            </div>
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="label">Database</div>
+                <div class="value" id="status-db">—</div>
+              </div>
+              <div class="stat">
+                <div class="label">Extensions</div>
+                <div class="value" id="status-extensions" style="font-size:14px">—</div>
+              </div>
+              <div class="stat">
+                <div class="label">customer_feedback rows</div>
+                <div class="value" id="status-feedback-rows">—</div>
+              </div>
+              <div class="stat">
+                <div class="label">Catalog files</div>
+                <div class="value" id="status-catalog-files">—</div>
+              </div>
+            </div>
+            <div class="pipelines-wrap">
+              <div class="sql-label">Pipelines</div>
+              <table id="status-pipelines">
+                <thead>
+                  <tr><th>Name</th><th>Source</th><th>Destination</th><th>Auto-processing</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Setup -->
+        <section id="setup" class="tab-panel">
+          <p class="setup-intro">Every step below shows its SQL immediately — read it before you click Run. After running, the block updates with the exact statements actually executed (redacted of any credentials) and the real output. Each card also explains <strong>what</strong> it does and <strong>why</strong> it matters.</p>
+          <div id="setup-reinitialize"></div>
+          <div id="setup-steps"></div>
+
+          <div class="card next-banner" id="setup-next-banner" style="display:none">
+            <div class="next-banner-body">
+              <div class="next-banner-title">✅ Setup complete</div>
+              <p>Both knowledge bases exist, auto-processing is on, and the chat model is registered. Go to the <strong>Chat</strong> tab and start asking questions.</p>
+              <button class="runbtn" data-goto-tab="chat">Go to Chat →</button>
+            </div>
+          </div>
+
+          <div class="card sql-console">
+            <div class="ov-hdr">
+              <h2>SQL Console</h2>
+              <button class="runbtn" id="sql-run-btn">▶ Run</button>
+            </div>
+            <div class="sql-console-body">
+              <p class="setup-intro" style="margin-top:0">Run any SQL directly against the demo database — explore <code>aidb.*</code>/<code>pgfs.*</code> catalogs, inspect tables, or try your own queries. One statement per run.</p>
+              <textarea id="sql-input" rows="4" spellcheck="false" placeholder="SELECT * FROM aidb.pipelines;"></textarea>
+              <div class="chat-hint" style="text-align:left;padding-top:4px">⌘/Ctrl+Enter to run</div>
+              <div class="sql-label" style="margin-top:12px">Result</div>
+              <div id="sql-result"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chat -->
+        <section id="chat" class="tab-panel">
+          <div class="chat-layout">
+            <div class="chat-wrap">
+              <div class="chat-log" id="chat-log"></div>
+              <div class="chat-input-bar">
+                <div class="chat-input-shell">
+                  <textarea id="chat-input" rows="1" placeholder="Ask about ACME's products or customer feedback..."></textarea>
+                  <button class="send-btn" id="chat-send">➤</button>
+                </div>
+                <div class="chat-hint">Enter to send · Shift+Enter for a new line</div>
+              </div>
+            </div>
+            <aside class="chat-suggestions">
+              <div class="card">
+                <div class="ov-hdr"><h2>Try asking</h2></div>
+                <div class="suggestion-list">
+                  <button class="suggestion-btn" data-q="What do customers say about savings accounts?">What do customers say about savings accounts?</button>
+                  <button class="suggestion-btn" data-q="What is the gap between customer request about savings and ACME's product?">What is the gap between customer request about savings and ACME's product?</button>
+                  <button class="suggestion-btn" data-q="What are the fees for ACME Savings?">What are the fees for ACME Savings?</button>
+                  <button class="suggestion-btn" data-q="Are there any complaints about the mobile app?">Are there any complaints about the mobile app?</button>
+                </div>
+              </div>
+              <div class="card callout-card">
+                <div class="ov-hdr"><h2>Now try this one</h2></div>
+                <div class="suggestion-list">
+                  <button class="suggestion-btn callout" data-q="What ACME offers as 2026 product catalog?">What ACME offers as 2026 product catalog?</button>
+                </div>
+                <p class="callout-note">This should <strong>fail</strong> (or answer incompletely) — the 2026 expansion catalog hasn't been uploaded yet, only the original product catalog. Go to the <strong>Upload</strong> tab to add it, then come back and ask this again.</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- Upload -->
+        <section id="upload" class="tab-panel">
+          <div class="card upload-panel">
+            <h2 style="margin:0 0 6px;font-size:15px">Upload a new product catalog PDF</h2>
+            <p>Dropped here, it lands in the MinIO bucket that <code>catalogs_pipeline</code>
+               polls (Background auto-processing, 1 minute) — ask about it in the
+               Chat tab once it's picked up.</p>
+            <form id="upload-form" class="upload-row">
+              <input id="upload-input" type="file" accept="application/pdf" />
+              <button type="submit" class="runbtn">Upload</button>
+            </form>
+            <div class="divider-or">— or —</div>
+            <div class="upload-row">
+              <button id="upload-sample-btn" class="runbtn secondary">Use bundled sample: acme_2026_expansion_catalog.pdf</button>
+            </div>
+            <div class="sql-label">Result</div>
+            <div class="output-block" id="upload-output"></div>
+          </div>
+
+          <div class="card" id="upload-inspect-card" style="display:none">
+            <div class="ov-hdr"><h2>Watch it get picked up</h2></div>
+            <div class="sql-console-body">
+              <p class="setup-intro" style="margin-top:0">Background auto-processing polls the bucket every minute. Run these to watch it happen — <code>list_volume_content</code> shows the file is already there; <code>pipeline_metrics</code>'s <code>count(source records)</code> for <code>catalogs_pipeline</code> climbs from 1 to 2 once it's actually been processed.</p>
+
+              <div class="step-titles" style="margin-bottom:6px">
+                <button class="runbtn secondary" data-inspect="volume-content">▶ List volume content</button>
+              </div>
+              <div class="sql-block">SELECT * FROM aidb.list_volume_content('catalogs_volume');</div>
+              <div class="output-block" id="inspect-volume-output"></div>
+
+              <div class="step-titles" style="margin:16px 0 6px">
+                <button class="runbtn secondary" data-inspect="pipeline-metrics">▶ Pipeline metrics</button>
+              </div>
+              <div class="sql-block">SELECT * FROM aidb.pipeline_metrics;</div>
+              <div class="output-block" id="inspect-metrics-output"></div>
+              <p class="callout-note" id="inspect-metrics-hint" style="display:none">2 sources found for catalogs_pipeline — the second PDF has been processed. Go back to <strong>Chat</strong> and ask the 2026 catalog question again.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ov-hdr"><h2>Live update demo: customer_feedback</h2></div>
+            <div class="sql-console-body">
+              <p class="setup-intro" style="margin-top:0">feedback_pipeline is set to <code>Live</code> — a trigger embeds new rows within seconds, no waiting for a background poll. Insert a row, watch the knowledge base's row count go up immediately, then confirm retrieval reflects the table's current state.</p>
+              <div class="sql-block">INSERT INTO customer_feedback (customer_id, channel, feedback_text, product_id, timestamp)
+VALUES (123, 'mobile_app', 'Great experience with the new features!', 'ACME Savings', '2023-08-15 10:30:00');
+
+SELECT count(*) FROM pipeline_feedback_pipeline;
+
+SELECT value, distance FROM aidb.retrieve_text('public.pipeline_feedback_pipeline', 'automated savings and round-up', 5);</div>
+              <button class="runbtn" id="insert-feedback-btn">▶ Insert sample row</button>
+              <div class="output-block" id="insert-feedback-output" style="margin-top:10px"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
-    <div class="live-badge">LIVE</div>
-  </header>
+  </div>
 
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="overview">Overview</button>
-    <button class="tab-btn" data-tab="setup">Setup</button>
-    <button class="tab-btn" data-tab="chat">Chat</button>
-    <button class="tab-btn" data-tab="upload">Upload</button>
-  </nav>
-
-  <main>
-    <!-- Overview -->
-    <section id="overview" class="tab-panel active">
-      <div class="card">
-        <div class="ov-hdr">
-          <h2>Live status</h2>
-          <button class="runbtn secondary" id="refresh-status">Refresh</button>
-        </div>
-        <div class="stat-grid">
-          <div class="stat">
-            <div class="label">Database</div>
-            <div class="value" id="status-db">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Extensions</div>
-            <div class="value" id="status-extensions" style="font-size:14px">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">customer_feedback rows</div>
-            <div class="value" id="status-feedback-rows">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Catalog files</div>
-            <div class="value" id="status-catalog-files">—</div>
-          </div>
-        </div>
-        <div class="pipelines-wrap">
-          <div class="sql-label">Pipelines</div>
-          <table id="status-pipelines">
-            <thead>
-              <tr><th>Name</th><th>Source</th><th>Destination</th><th>Auto-processing</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Setup -->
-    <section id="setup" class="tab-panel">
-      <p class="setup-intro">Every step below shows its SQL immediately — read it before you click Run. After running, the block updates with the exact statements actually executed (redacted of any credentials) and the real output.</p>
-      <div id="setup-reinitialize"></div>
-      <div id="setup-steps"></div>
-
-      <div class="card sql-console">
-        <div class="ov-hdr">
-          <h2>SQL Console</h2>
-          <button class="runbtn" id="sql-run-btn">▶ Run</button>
-        </div>
-        <div class="sql-console-body">
-          <p class="setup-intro" style="margin-top:0">Run any SQL directly against the demo database — explore <code>aidb.*</code>/<code>pgfs.*</code> catalogs, inspect tables, or try your own queries. One statement per run.</p>
-          <textarea id="sql-input" rows="4" spellcheck="false" placeholder="SELECT * FROM aidb.pipelines;"></textarea>
-          <div class="chat-hint" style="text-align:left;padding-top:4px">⌘/Ctrl+Enter to run</div>
-          <div class="sql-label" style="margin-top:12px">Result</div>
-          <div id="sql-result"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Chat -->
-    <section id="chat" class="tab-panel">
-      <div class="chat-wrap">
-        <div class="chat-log" id="chat-log"></div>
-        <div class="chat-input-bar">
-          <div class="chat-input-shell">
-            <textarea id="chat-input" rows="1" placeholder="Ask about ACME's products or customer feedback..."></textarea>
-            <button class="send-btn" id="chat-send">➤</button>
-          </div>
-          <div class="chat-hint">Enter to send · Shift+Enter for a new line</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Upload -->
-    <section id="upload" class="tab-panel">
-      <div class="card upload-panel">
-        <h2 style="margin:0 0 6px;font-size:15px">Upload a new product catalog PDF</h2>
-        <p>Dropped here, it lands in the MinIO bucket that <code>catalogs_pipeline</code>
-           polls (Background auto-processing, 1 minute) — ask about it in the
-           Chat tab once it's picked up.</p>
-        <form id="upload-form" class="upload-row">
-          <input id="upload-input" type="file" accept="application/pdf" />
-          <button type="submit" class="runbtn">Upload</button>
-        </form>
-        <div class="divider-or">— or —</div>
-        <div class="upload-row">
-          <button id="upload-sample-btn" class="runbtn secondary">Use bundled sample: acme_2026_expansion_catalog.pdf</button>
-        </div>
-        <div class="sql-label">Result</div>
-        <div class="output-block" id="upload-output"></div>
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

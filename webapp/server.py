@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from commands.create_db import create_db as _create_db
+from commands.create_db import create_database as _create_database, create_extensions as _create_extensions
 from commands.create_pipelines import (
     BUCKET_STORAGE_LOCATION,
     BUCKET_URI,
@@ -30,6 +30,11 @@ from commands.create_pipelines import (
     register_embedding_model as _register_embedding_model,
     retrieve_catalog_demo as _retrieve_catalog_demo,
     retrieve_feedback_demo as _retrieve_feedback_demo,
+)
+from commands.inspect import (
+    insert_sample_feedback as _insert_sample_feedback,
+    list_catalog_volume as _list_catalog_volume,
+    pipeline_metrics as _pipeline_metrics,
 )
 from commands.reinitialize import reinitialize as _reinitialize
 from commands.seed_data import (
@@ -97,14 +102,24 @@ def _demo_db_name():
 # redacts them post-execution.
 # ---------------------------------------------------------------------------
 
+CREATE_DATABASE_INFO = {
+    "title": "Create database",
+    "description": f'Creates the empty "{_demo_db_name()}" database — nothing else exists yet, not even an extension.',
+    "why": "This is step zero. Everything else — extensions, tables, pipelines — needs a database to live in. "
+    'Once this succeeds, go to the Setup tab to continue.',
+    "sql": [f"CREATE DATABASE {_demo_db_name()};"],
+}
+
 SETUP_STEPS = [
     {
         "id": "create-extensions",
         "n": 1,
         "title": "Create extensions",
-        "description": "Creates the empty database and installs aidb/pgfs. Nothing else exists yet.",
+        "description": "Installs aidb and pgfs into the database created on the Overview tab.",
+        "why": "aidb is the AI engine — models, pipelines, and knowledge bases all live in its schema. pgfs is the "
+        "bridge to external object storage (MinIO/S3), needed later for the PDF catalogs. Installing both up front "
+        "is the entire \"no separate vector database, no separate model-serving layer\" pitch of this demo.",
         "sql": [
-            f"CREATE DATABASE {_demo_db_name()};",
             "CREATE EXTENSION IF NOT EXISTS aidb CASCADE;",
             "CREATE EXTENSION IF NOT EXISTS pgfs;",
         ],
@@ -114,6 +129,9 @@ SETUP_STEPS = [
         "n": 2,
         "title": "List models",
         "description": "Shows what's already registered in aidb's model catalog — built-in local models (bert, clip, t5, llama.cpp variants), before any NVIDIA NIM model is added.",
+        "why": "aidb ships with local models you can use immediately, no API key required. This demo uses NVIDIA "
+        "NIM instead for higher-quality embeddings/completions, but seeing the built-ins first makes clear that's "
+        "a choice, not a requirement.",
         "sql": [
             "SELECT name, provider, functions FROM aidb.models ORDER BY name;",
         ],
@@ -123,6 +141,9 @@ SETUP_STEPS = [
         "n": 3,
         "title": "Add NVIDIA embedding model",
         "description": "Registers the NVIDIA NIM embedding model used by both knowledge bases below.",
+        "why": "From this point on, \"embed this text\" is a database operation — aidb.create_model() registers "
+        "the provider/URL/credentials once, and every pipeline step below just references the model by name. No "
+        "embedding client library, no retry logic to write in application code.",
         "sql": [
             f"""SELECT aidb.create_model(
     '{NIM_MODEL_NAME}',
@@ -138,6 +159,9 @@ SETUP_STEPS = [
         "n": 4,
         "title": "Seed customer_feedback",
         "description": "Creates the table and loads it from the bundled CSV — first run only, a second run is a no-op.",
+        "why": "This is the demo's structured data source: rows already sitting in a normal Postgres table, "
+        "exactly like data you already have. aidb reads it in place — nothing needs to be exported or copied "
+        "into a separate system.",
         "sql": [
             "CREATE TABLE IF NOT EXISTS customer_feedback (id SERIAL, customer_id INT, channel TEXT, feedback_text TEXT, product_id TEXT, timestamp TIMESTAMP);",
             "SELECT count(*) FROM customer_feedback;",
@@ -149,6 +173,8 @@ SETUP_STEPS = [
         "n": 5,
         "title": "Inspect customer_feedback",
         "description": "Read-only: shows the table's columns and a sample of rows.",
+        "why": "Confirms the load actually worked, and shows exactly which column (feedback_text) the pipeline in "
+        "step 8 will chunk and embed — worth seeing before it becomes vectors you can't read directly.",
         "sql": [
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'customer_feedback' ORDER BY ordinal_position;",
             "SELECT id, channel, feedback_text, product_id FROM customer_feedback ORDER BY id LIMIT 5;",
@@ -159,6 +185,9 @@ SETUP_STEPS = [
         "n": 6,
         "title": "Seed catalog PDF",
         "description": "Uploads exactly one catalog PDF to MinIO — small on purpose, the second PDF is held back for the Upload tab — then shows it inline.",
+        "why": "This is the demo's unstructured data source: a real PDF in object storage, no different from a "
+        "bucket you already have in production. Only one file goes in now so the Upload tab later can show what "
+        "happens when a second one arrives live.",
         "sql": [
             f"-- (not SQL) upload {INITIAL_CATALOG_PDF} to s3://{{bucket}}/{CATALOGS_PREFIX}/",
         ],
@@ -168,6 +197,9 @@ SETUP_STEPS = [
         "n": 7,
         "title": "Connect catalog storage",
         "description": "Points pgfs at the MinIO bucket, creates the catalogs_volume foreign table over it, then lists what's actually in it.",
+        "why": "pgfs turns a bucket into a queryable Postgres object (a \"volume\") — from here, files in MinIO are "
+        "addressable like rows in a table. list_volume_content proves the connection actually works before "
+        "building anything on top of it.",
         "sql": [
             f"""SELECT pgfs.create_storage_location(
     '{BUCKET_STORAGE_LOCATION}', '{BUCKET_URI}',
@@ -183,6 +215,9 @@ SETUP_STEPS = [
         "n": 8,
         "title": "Create feedback knowledge base",
         "description": "Builds feedback_pipeline: chunks + embeds customer_feedback.feedback_text, then sets it to Live auto-processing.",
+        "why": "One declarative call replaces what's usually three separate tools (a chunker, an embedding client, "
+        "a vector store writer). Live mode attaches a trigger, so every future INSERT/UPDATE/DELETE on "
+        "customer_feedback is embedded within seconds automatically — you'll see this live later on the Upload tab.",
         "sql": [
             f"""SELECT aidb.create_pipeline(
     name => 'feedback_pipeline',
@@ -203,6 +238,8 @@ SETUP_STEPS = [
         "n": 9,
         "title": "retrieve_text on feedback knowledge base",
         "description": "Table-sourced pipelines resolve matched chunks straight from the source column via retrieve_text.",
+        "why": "Proves semantic search works end-to-end before the chat UI is even built — this is the exact "
+        "function rag.py calls for the structured half of every answer. Try changing the query text and re-running.",
         "sql": [
             "SELECT key, value, distance FROM aidb.retrieve_text('public.pipeline_feedback_pipeline', '{query}', 5);",
         ],
@@ -214,6 +251,9 @@ SETUP_STEPS = [
         "n": 10,
         "title": "Create catalog pipeline",
         "description": "Builds catalogs_pipeline over catalogs_volume: parses + chunks + embeds the PDF(s), then runs it once.",
+        "why": "Same shape as the feedback pipeline in step 8, plus one extra step (ParsePdf) since the source is "
+        "binary PDF bytes, not text. Everything downstream — chunking, embedding, retrieval — works identically "
+        "once the text is out.",
         "sql": [
             f"""SELECT aidb.create_pipeline(
     name => 'catalogs_pipeline',
@@ -233,6 +273,8 @@ SETUP_STEPS = [
         "n": 11,
         "title": "Enable catalog auto-processing",
         "description": "Volume sources have no triggers, so a background worker polls the bucket on this interval and processes new/changed files it finds.",
+        "why": "This is the piece you'll actually watch happen later: upload a second PDF on the Upload tab, and "
+        "within about a minute this poller notices it and embeds it — no manual re-run, no code deployed.",
         "sql": [
             "SELECT aidb.update_pipeline('catalogs_pipeline', auto_processing => 'Background', background_sync_interval => '1 minute');",
         ],
@@ -242,6 +284,8 @@ SETUP_STEPS = [
         "n": 12,
         "title": "retrieve_key on catalog knowledge base",
         "description": "Volume-sourced pipelines' retrieve_text would return raw PDF bytes, so matched chunks come from retrieve_key joined back to the catalog_chunks intermediate table instead.",
+        "why": "The one real wrinkle volume sources introduce: retrieve_key + a join, instead of the simpler "
+        "retrieve_text from step 9. This is the exact join rag.py uses for the catalog half of every chat answer.",
         "sql": [
             """WITH retrieve_key AS (
     SELECT * FROM aidb.retrieve_key('public.pipeline_catalogs_pipeline', '{query}', topk => 5)
@@ -259,6 +303,9 @@ WHERE r.part_ids[3] = 0;""",
         "n": 13,
         "title": "Add chat completions NVIDIA model",
         "description": "Registers the model the Chat tab uses to generate answers from retrieved context.",
+        "why": "The last piece of the \"everything runs in the database\" story: completions are registered the "
+        "same way embeddings were in step 3, with aidb.create_model(). The Chat tab never talks to an LLM API "
+        "directly — it asks the database for an answer.",
         "sql": [
             f"""SELECT aidb.create_model(
     '{COMPLETIONS_MODEL_NAME}',
@@ -286,6 +333,16 @@ REINITIALIZE_SQL = [
     "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'aidb\\_pipeline\\_state\\_%';\n"
     "DROP TABLE IF EXISTS <each found table> CASCADE;",
 ]
+
+
+@app.get("/api/overview/create-database")
+def overview_create_database_info():
+    return CREATE_DATABASE_INFO
+
+
+@app.post("/api/overview/create-database")
+def overview_create_database():
+    return run_captured(_create_database)
 
 
 @app.get("/api/setup/steps")
@@ -353,7 +410,7 @@ def status():
 
 @app.post("/api/setup/create-extensions")
 def setup_create_extensions():
-    return run_captured(_create_db)
+    return run_captured(_create_extensions)
 
 
 @app.post("/api/setup/list-models")
@@ -479,6 +536,21 @@ def upload_sample():
     # auto-processing pick up a new file without needing their own PDF handy.
     key = upload_sample_pdf()
     return {"ok": True, "key": key, "filename": SAMPLE_UPLOAD_PDF}
+
+
+@app.post("/api/inspect/volume-content")
+def inspect_volume_content():
+    return run_captured(_list_catalog_volume)
+
+
+@app.post("/api/inspect/pipeline-metrics")
+def inspect_pipeline_metrics():
+    return run_captured(_pipeline_metrics)
+
+
+@app.post("/api/inspect/insert-feedback")
+def inspect_insert_feedback():
+    return run_captured(_insert_sample_feedback)
 
 
 class SqlRequest(BaseModel):
