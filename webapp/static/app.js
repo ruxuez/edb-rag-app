@@ -553,7 +553,7 @@ document.querySelectorAll("[data-inspect]").forEach((btn) => {
             hint.innerHTML = `${count} sources found for catalogs_pipeline — the second PDF has been processed. Go back to <strong>Chat</strong> and ask the 2026 catalog question again.`;
           } else {
             hint.classList.add("pending");
-            hint.innerHTML = `Only ${count} source found for catalogs_pipeline — the second PDF hasn't been picked up yet. Background auto-processing polls every minute; wait a bit and run <strong>Pipeline metrics</strong> again.`;
+            hint.innerHTML = `Only ${count} source found for catalogs_pipeline — the second PDF hasn't been picked up yet. Background auto-processing polls every minute; while you wait, try the <strong>Live update demo: customer_feedback</strong> below, then come back and run <strong>Pipeline metrics</strong> again.`;
           }
         }
       }
