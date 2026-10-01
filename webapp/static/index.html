@@ -6,7 +6,7 @@
 <title>aidb RAG Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4" />
+<link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <div class="app-shell">
@@ -72,7 +72,11 @@
         <!-- Setup -->
         <section id="setup" class="tab-panel">
           <p class="setup-intro">Every step below shows its SQL immediately — read it before you click Run. After running, the block updates with the exact statements actually executed (redacted of any credentials) and the real output. Each card also explains <strong>what</strong> it does and <strong>why</strong> it matters.</p>
-          <div id="setup-reinitialize"></div>
+          <details class="danger-zone">
+            <summary>Danger zone — Reset to starting point</summary>
+            <p class="callout-note danger">Only open this if you actually want to wipe the demo back to its starting point. Don't click <strong>Reinitialize</strong> between ordinary Setup steps — it drops the aidb/pgfs extensions and every pipeline-created table (customer_feedback and the uploaded catalog PDF(s) are kept; you'll need to re-run steps 1-3, 5, and 7-13 afterwards).</p>
+            <div id="setup-reinitialize"></div>
+          </details>
           <div id="setup-steps"></div>
 
           <div class="card next-banner" id="setup-next-banner" style="display:none">

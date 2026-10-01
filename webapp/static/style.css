@@ -225,6 +225,32 @@ td.mono { font-family: var(--mono); font-size: 12.5px; }
 .step.danger { border-color: rgba(220, 38, 38, .3); }
 .step.danger .step-n { background: linear-gradient(135deg, var(--err), #b91c1c); }
 
+details.danger-zone { margin: 0 0 18px; }
+details.danger-zone summary {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--err);
+  padding: 10px 14px;
+  border: 1px solid rgba(220, 38, 38, .3);
+  border-radius: 8px;
+  background: #fef2f2;
+}
+details.danger-zone summary::-webkit-details-marker { display: none; }
+details.danger-zone summary::before { content: "▸ "; }
+details.danger-zone[open] summary { border-radius: 8px 8px 0 0; }
+details.danger-zone[open] summary::before { content: "▾ "; }
+details.danger-zone .callout-note.danger {
+  margin: 0;
+  border-radius: 0;
+  background: #fef2f2;
+  border-left-color: var(--err);
+}
+details.danger-zone .callout-note.danger strong { color: var(--err); }
+details.danger-zone > #setup-reinitialize { margin-top: 10px; }
+
 .sql-block {
   background: #f8fafc;
   border: 1px solid var(--border);

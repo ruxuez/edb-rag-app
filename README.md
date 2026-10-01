@@ -145,14 +145,17 @@ one held back from Setup). Two things become available once it's uploaded:
   row from the seeded CSV — not literally the row you just inserted, just
   proof the knowledge base is live and queryable).
 
-**Reinitialize** (top of the Setup tab, in red) resets back to the initial
-starting point without tearing down any containers: it drops the `aidb`/`pgfs`
-extensions, every pipeline-created table (`pipeline_feedback_pipeline`,
-`pipeline_catalogs_pipeline`, `feedback_chunks`, `catalog_chunks`, their error
-tables, and the `aidb_pipeline_state_<n>` auto-processing bookkeeping tables),
-but *keeps* `customer_feedback` (table + rows) and the uploaded catalog
-PDF(s) in RustFS. After it, steps 1-3, 5, and 7-13 rebuild everything from
-that same data — steps 4 and 6 (seeding) aren't needed again.
+**Reinitialize** (collapsed behind a "Danger zone" disclosure at the top of
+the Setup tab — expand it only if you actually mean to use it) resets back to
+the initial starting point without tearing down any containers: it drops the
+`aidb`/`pgfs` extensions, every pipeline-created table
+(`pipeline_feedback_pipeline`, `pipeline_catalogs_pipeline`, `feedback_chunks`,
+`catalog_chunks`, their error tables, and the `aidb_pipeline_state_<n>`
+auto-processing bookkeeping tables), but *keeps* `customer_feedback` (table +
+rows) and the uploaded catalog PDF(s) in RustFS. After it, steps 1-3, 5, and
+7-13 rebuild everything from that same data — steps 4 and 6 (seeding) aren't
+needed again. Don't click it between ordinary Setup steps; it's only for
+resetting the whole demo.
 
 Tear down with `./99-deprovision.sh` — there's no persistent volume by design,
 so re-running `./00-provision.sh` always starts from the same known-good state.
