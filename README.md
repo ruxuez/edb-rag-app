@@ -53,14 +53,17 @@ you're meant to use them:
 
 ### 1. Overview
 
-Click **Create database** first — it just creates the empty database, nothing
-else exists yet. Once it succeeds, go to **Setup**. The rest of the Overview
-tab is a live status panel (extensions installed, row/file counts, pipeline
-auto-processing modes) you can refresh at any point.
+**Click Create database first** — it just creates the empty database, nothing
+else exists yet, and every Setup step depends on it. Once it succeeds, go to
+**Setup**. The rest of the Overview tab is a live status panel (extensions
+installed, row/file counts, pipeline auto-processing modes) you can refresh at
+any point.
 
 ### 2. Setup
 
-Click through the 13 steps, in order. Every step's SQL is shown *before* you
+Make sure you've created the database on the **Overview** tab first — step 1
+below (Create extensions) needs it to exist and will fail otherwise. Click
+through the 13 steps, in order. Every step's SQL is shown *before* you
 run it (a static preview, tagged "preview") — read it, then click Run; the
 block updates to the exact statements actually executed (tagged "executed",
 redacted of any credentials) plus the real output. Each card also has a
