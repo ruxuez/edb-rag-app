@@ -19,11 +19,11 @@ NIM_COMPLETIONS_MODEL = os.getenv("NIM_COMPLETIONS_MODEL") or "nvidia/nemotron-3
 BUCKET_STORAGE_LOCATION = "workshop_bucket"
 
 # S3-compatible storage location for the catalogs volume. Defaults target the
-# MinIO container from docker-compose.yml; override CATALOGS_BUCKET_URI /
+# RustFS container from docker-compose.yml; override CATALOGS_BUCKET_URI /
 # S3_* to point at real AWS S3 instead (leave S3_ENDPOINT unset for AWS).
 BUCKET_URI = os.getenv("CATALOGS_BUCKET_URI", "s3://aidb-demo-catalogs")
 S3_REGION = os.getenv("S3_REGION", "us-east-1")
-S3_ENDPOINT = os.getenv("S3_ENDPOINT")  # e.g. http://minio:9000 ; unset = AWS S3
+S3_ENDPOINT = os.getenv("S3_ENDPOINT")  # e.g. http://rustfs:9000 ; unset = AWS S3
 S3_ALLOW_HTTP = os.getenv("S3_ALLOW_HTTP", "false")
 S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
 S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")

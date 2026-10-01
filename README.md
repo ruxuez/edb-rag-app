@@ -7,12 +7,13 @@ storage — no separate vector database, no separate model-serving layer.
 
 - **Structured**: a `customer_feedback` table, chunked and embedded via an
   `aidb` pipeline (`feedback_pipeline`).
-- **Unstructured**: PDF product catalogs in a MinIO bucket, parsed, chunked,
+- **Unstructured**: PDF product catalogs in a RustFS bucket, parsed, chunked,
   and embedded via another pipeline (`catalogs_pipeline`).
 
-Everything runs in Docker: Postgres 18 + `aidb` + `pgfs`, a MinIO container
-standing in for S3, and a small dashboard web app to run the whole demo flow
-by clicking buttons instead of typing CLI commands.
+Everything runs in Docker: Postgres 18 + `aidb` + `pgfs`, a RustFS container
+standing in for S3 (MinIO-compatible — MinIO itself ceased development and
+pulled its Docker images), and a small dashboard web app to run the whole
+demo flow by clicking buttons instead of typing CLI commands.
 
 ## Requirements
 
@@ -44,7 +45,7 @@ Once it's up:
 | URL                            | What                                  |
 |---------------------------------|----------------------------------------|
 | http://localhost:8080          | Dashboard (the demo itself)            |
-| http://localhost:9001          | MinIO console                          |
+| http://localhost:9001          | RustFS console                         |
 | postgres://postgres:postgres@localhost:5434/demo | psql / any Postgres client |
 
 The dashboard has a left-hand sidebar with four tabs, numbered in the order
@@ -78,10 +79,10 @@ what SQL it runs:
 5. **Inspect customer_feedback** — read-only: shows the table's columns and a
    sample of rows.
 6. **Seed catalog PDF** — uploads exactly *one* catalog PDF
-   (`acme_product_catalog.pdf`) to MinIO — small on purpose, the second PDF
+   (`acme_product_catalog.pdf`) to RustFS — small on purpose, the second PDF
    is held back for the Upload tab — then shows it inline. First run only;
    re-running is a no-op.
-7. **Connect catalog storage** — points `pgfs` at the MinIO bucket, creates
+7. **Connect catalog storage** — points `pgfs` at the RustFS bucket, creates
    the `catalogs_volume` foreign table over it, then lists what's actually in
    it with `aidb.list_volume_content`.
 8. **Create feedback knowledge base** — builds `feedback_pipeline` from
@@ -147,7 +148,7 @@ extensions, every pipeline-created table (`pipeline_feedback_pipeline`,
 `pipeline_catalogs_pipeline`, `feedback_chunks`, `catalog_chunks`, their error
 tables, and the `aidb_pipeline_state_<n>` auto-processing bookkeeping tables),
 but *keeps* `customer_feedback` (table + rows) and the uploaded catalog
-PDF(s) in MinIO. After it, steps 1-3, 5, and 7-13 rebuild everything from
+PDF(s) in RustFS. After it, steps 1-3, 5, and 7-13 rebuild everything from
 that same data — steps 4 and 6 (seeding) aren't needed again.
 
 Tear down with `./99-deprovision.sh` — there's no persistent volume by design,
@@ -156,7 +157,9 @@ so re-running `./00-provision.sh` always starts from the same known-good state.
 ## How it's put together
 
 - `docker-compose.yml` runs three containers: `postgres` (Postgres+aidb+pgfs),
-  `minio` (S3-compatible storage), and `webapp` (the dashboard).
+  `rustfs` (S3-compatible storage — a MinIO-compatible, actively-maintained
+  replacement; MinIO itself ceased development and its Docker images are no
+  longer pullable), and `webapp` (the dashboard).
 - `postgres/Dockerfile` builds on EDB's own CloudNativePG operand image
   (`docker.enterprisedb.com/k8s/postgresql:18.6-standard-ubi9` — community
   Postgres 18.6 on UBI9). That base image ships bare Postgres binaries with
@@ -182,7 +185,7 @@ so re-running `./00-provision.sh` always starts from the same known-good state.
   sidebar of its own.
 - `commands/create_pipelines.py`'s storage-location config
   (`CATALOGS_BUCKET_URI`, `S3_ENDPOINT`, `S3_ALLOW_HTTP`, `S3_ACCESS_KEY_ID`,
-  `S3_SECRET_ACCESS_KEY`) is env-driven so it targets MinIO by default but can
+  `S3_SECRET_ACCESS_KEY`) is env-driven so it targets RustFS by default but can
   point at real AWS S3 instead (leave `S3_ENDPOINT` unset for AWS).
 
 ## How retrieval works
@@ -270,10 +273,10 @@ python app.py insert-sample-feedback
   register-embedding-model        Register the NVIDIA NIM embedding model
   seed-feedback-table             Create customer_feedback and load it from the bundled CSV (first run only)
   inspect-feedback-table          Show customer_feedback's columns and a sample of rows
-  seed-catalog-pdf                Upload the initial catalog PDF to MinIO (first run only)
+  seed-catalog-pdf                Upload the initial catalog PDF to RustFS (first run only)
   create-feedback-kb              Build the feedback_pipeline knowledge base
   retrieve-feedback [query]       Demo aidb.retrieve_text against the feedback knowledge base
-  create-catalog-storage          Connect pgfs to the MinIO bucket and create the catalogs_volume
+  create-catalog-storage          Connect pgfs to the RustFS bucket and create the catalogs_volume
   create-catalog-pipeline         Build and run the catalogs_pipeline knowledge base
   enable-catalog-auto-processing  Enable Background auto-processing on catalogs_pipeline
   retrieve-catalog [query]        Demo aidb.retrieve_key against the catalog knowledge base

@@ -129,7 +129,7 @@ def inspect_feedback_table(args=None, sql_log=None):
 
 
 def seed_catalog_pdf(args=None, sql_log=None):
-    """Upload the initial catalog PDF to MinIO (creating the bucket first if
+    """Upload the initial catalog PDF to RustFS (creating the bucket first if
     needed) — only on the first run; a second run is a no-op."""
     _seed_initial_catalog_pdf()
     print(f"Catalog PDF ready to visualize: {INITIAL_CATALOG_PDF}")

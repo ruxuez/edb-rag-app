@@ -117,7 +117,7 @@ SETUP_STEPS = [
         "title": "Create extensions",
         "description": "Installs aidb and pgfs into the database created on the Overview tab.",
         "why": "aidb is the AI engine — models, pipelines, and knowledge bases all live in its schema. pgfs is the "
-        "bridge to external object storage (MinIO/S3), needed later for the PDF catalogs. Installing both up front "
+        "bridge to external object storage (RustFS/S3), needed later for the PDF catalogs. Installing both up front "
         "is the entire \"no separate vector database, no separate model-serving layer\" pitch of this demo.",
         "sql": [
             "CREATE EXTENSION IF NOT EXISTS aidb CASCADE;",
@@ -184,7 +184,7 @@ SETUP_STEPS = [
         "id": "seed-catalog-pdf",
         "n": 6,
         "title": "Seed catalog PDF",
-        "description": "Uploads exactly one catalog PDF to MinIO — small on purpose, the second PDF is held back for the Upload tab — then shows it inline.",
+        "description": "Uploads exactly one catalog PDF to RustFS — small on purpose, the second PDF is held back for the Upload tab — then shows it inline.",
         "why": "This is the demo's unstructured data source: a real PDF in object storage, no different from a "
         "bucket you already have in production. Only one file goes in now so the Upload tab later can show what "
         "happens when a second one arrives live.",
@@ -196,8 +196,8 @@ SETUP_STEPS = [
         "id": "create-catalog-storage",
         "n": 7,
         "title": "Connect catalog storage",
-        "description": "Points pgfs at the MinIO bucket, creates the catalogs_volume foreign table over it, then lists what's actually in it.",
-        "why": "pgfs turns a bucket into a queryable Postgres object (a \"volume\") — from here, files in MinIO are "
+        "description": "Points pgfs at the RustFS bucket, creates the catalogs_volume foreign table over it, then lists what's actually in it.",
+        "why": "pgfs turns a bucket into a queryable Postgres object (a \"volume\") — from here, files in RustFS are "
         "addressable like rows in a table. list_volume_content proves the connection actually works before "
         "building anything on top of it.",
         "sql": [
@@ -354,7 +354,7 @@ def setup_steps():
         "reinitialize": {
             "title": "Reset to starting point",
             "description": "Drops aidb/pgfs and everything a pipeline created on top of them. "
-            "Keeps customer_feedback (table + rows) and the uploaded catalog PDF(s) in MinIO — "
+            "Keeps customer_feedback (table + rows) and the uploaded catalog PDF(s) in RustFS — "
             "re-run steps 1-3, 5, and 7-13 afterwards; steps 4 and 6 (seeding) aren't needed again.",
             "sql": REINITIALIZE_SQL,
         },

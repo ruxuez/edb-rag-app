@@ -96,7 +96,7 @@ def main():
         Command.INSPECT_FEEDBACK_TABLE.value, help="Show customer_feedback's columns and a sample of rows"
     )
     subparsers.add_parser(
-        Command.SEED_CATALOG_PDF.value, help="Upload the initial catalog PDF to MinIO (first run only)"
+        Command.SEED_CATALOG_PDF.value, help="Upload the initial catalog PDF to RustFS (first run only)"
     )
     subparsers.add_parser(Command.CREATE_FEEDBACK_KB.value, help="Build the feedback_pipeline knowledge base")
 
@@ -107,7 +107,7 @@ def main():
 
     subparsers.add_parser(
         Command.CREATE_CATALOG_STORAGE.value,
-        help="Connect pgfs to the MinIO bucket and create the catalogs_volume",
+        help="Connect pgfs to the RustFS bucket and create the catalogs_volume",
     )
     subparsers.add_parser(
         Command.CREATE_CATALOG_PIPELINE.value, help="Build and run the catalogs_pipeline knowledge base"

@@ -7,7 +7,7 @@ def reinitialize(args=None, sql_log=None):
     """Reset the database back to its initial starting point.
 
     Keeps: the customer_feedback table (and its rows) and the catalog
-    PDF(s) already uploaded to MinIO — the demo's actual source data.
+    PDF(s) already uploaded to RustFS — the demo's actual source data.
 
     Drops: the aidb/pgfs extensions (which removes registered models,
     pipeline definitions, and storage locations/volumes) plus the
@@ -49,7 +49,7 @@ def reinitialize(args=None, sql_log=None):
                 )
     conn.close()
     print("Dropped aidb/pgfs extensions and all pipeline-created tables.")
-    print("Kept: customer_feedback (table + rows) and the uploaded catalog PDF(s) in MinIO.")
+    print("Kept: customer_feedback (table + rows) and the uploaded catalog PDF(s) in RustFS.")
     print(
         "Re-run Setup steps 1-3, 5, and 7-13 to rebuild — steps 4 and 6 "
         "(seeding customer_feedback / the catalog PDF) are not needed again."

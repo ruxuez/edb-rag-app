@@ -23,16 +23,22 @@ services:
       # below) — this only affects connecting from your host machine.
       - "5434:5432"
     # No named volume by design (ephemeral) so every ./00-provision.sh starts
-    # from the same known-good state, same as this demo's MinIO service.
+    # from the same known-good state, same as this demo's RustFS service.
     restart: unless-stopped
 
-  minio:
-    image: minio/minio:latest
-    container_name: aidb-rag-minio
+  rustfs:
+    # MinIO ceased development (Apr 2026) and pulled its Docker Hub/Quay
+    # images; RustFS is the actively-maintained, Apache-2.0 MinIO
+    # reimplementation (byte-compatible on-disk format, same S3 API).
+    image: rustfs/rustfs:latest
+    container_name: aidb-rag-rustfs
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    command: server /data --console-address ":9001"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+    command: ["/data"]
     ports:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Web console
@@ -46,7 +52,7 @@ services:
     container_name: aidb-rag-webapp
     depends_on:
       - postgres
-      - minio
+      - rustfs
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/demo?sslmode=disable
       # Name of a database that already exists on a fresh instance, used to
@@ -59,10 +65,10 @@ services:
       NIM_EMBEDDINGS_MODEL: ${NIM_EMBEDDINGS_MODEL:-}
       NIM_COMPLETIONS_MODEL: ${NIM_COMPLETIONS_MODEL:-}
       CATALOGS_BUCKET_URI: s3://aidb-demo-catalogs
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://rustfs:9000
       S3_ALLOW_HTTP: "true"
-      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
       S3_REGION: us-east-1
     ports:
       - "8080:8080"

@@ -28,9 +28,9 @@ cat <<'EOF'
 
 Ready.
 
-  Dashboard:     http://localhost:8080
-  MinIO console: http://localhost:9001
-  Postgres:      postgres://postgres:postgres@localhost:5434/demo
+  Dashboard:      http://localhost:8080
+  RustFS console: http://localhost:9001
+  Postgres:       postgres://postgres:postgres@localhost:5434/demo
 
 Open the dashboard and click through the Setup tab, in order, to build
 the demo's knowledge bases.

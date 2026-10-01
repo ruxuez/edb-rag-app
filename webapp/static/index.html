@@ -6,7 +6,7 @@
 <title>aidb RAG Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2" />
+<link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <div class="app-shell">
@@ -134,7 +134,7 @@
         <section id="upload" class="tab-panel">
           <div class="card upload-panel">
             <h2 style="margin:0 0 6px;font-size:15px">Upload a new product catalog PDF</h2>
-            <p>Dropped here, it lands in the MinIO bucket that <code>catalogs_pipeline</code>
+            <p>Dropped here, it lands in the RustFS bucket that <code>catalogs_pipeline</code>
                polls (Background auto-processing, 1 minute) — ask about it in the
                Chat tab once it's picked up.</p>
             <form id="upload-form" class="upload-row">
@@ -188,6 +188,6 @@ SELECT value, distance FROM aidb.retrieve_text('public.pipeline_feedback_pipelin
     </div>
   </div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

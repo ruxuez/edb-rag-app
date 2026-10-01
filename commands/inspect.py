@@ -19,7 +19,7 @@ VERIFY_QUERY = "automated savings and round-up"
 
 
 def list_catalog_volume(args=None, sql_log=None):
-    """What files pgfs currently sees in the MinIO bucket — run again after
+    """What files pgfs currently sees in the RustFS bucket — run again after
     uploading a new PDF to confirm it showed up before the pipeline has
     necessarily processed it yet."""
     conn = get_connection(sql_log=sql_log)
