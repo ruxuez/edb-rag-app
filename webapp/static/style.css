@@ -374,6 +374,8 @@ td.mono { font-family: var(--mono); font-size: 12.5px; }
   border-radius: 0 6px 6px 0;
 }
 .callout-note strong { color: #92400e; }
+.callout-note.pending { background: #eff6ff; border-left-color: #2563eb; }
+.callout-note.pending strong { color: #1d4ed8; }
 
 @media (max-width: 900px) {
   .chat-layout { flex-direction: column; }
