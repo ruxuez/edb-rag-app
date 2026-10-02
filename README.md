@@ -34,16 +34,17 @@ cd rag-demo-docker
 cp .env-example .env
 # edit .env: set EDB_SUBSCRIPTION_TOKEN and NVIDIA_API_KEY
 
-# one-time: log in so docker-compose can pull the base Postgres image
-docker login docker.enterprisedb.com --username k8s --password "$EDB_SUBSCRIPTION_TOKEN"
-
 ./00-provision.sh
 ```
 
 `./00-provision.sh` runs `./00-prereq.sh` first, which checks Docker is
-installed/running and actually verifies both `EDB_SUBSCRIPTION_TOKEN` and
-`NVIDIA_API_KEY` against the real services (not just "is it set") — catching a
-rotated/expired token in a few seconds with a clear message, instead of
+installed/running and actually verifies `EDB_SUBSCRIPTION_TOKEN` — against
+*both* EDB's package repo (what `postgres/Dockerfile` installs `aidb`/`pgfs`
+from) and the `docker.enterprisedb.com` registry (what the base Postgres image
+is pulled from; this also runs `docker login` for you, so there's no separate
+manual login step) — and `NVIDIA_API_KEY`, against the real services, not just
+"is it set". This catches a rotated/expired credential in a few seconds with a
+clear message, instead of partway through
 partway through a slow docker build or a confusing chat failure later. Run it
 on its own any time (`./00-prereq.sh`) if something that used to work suddenly
 doesn't — token rotation is a common, easy-to-miss cause.
