@@ -2,11 +2,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [ ! -f .env ]; then
-  echo "No .env found. Copy .env-example to .env and fill it in first:"
-  echo "  cp .env-example .env"
-  exit 1
-fi
+./00-prereq.sh
 
 echo "Building and starting containers..."
 docker compose up --build -d

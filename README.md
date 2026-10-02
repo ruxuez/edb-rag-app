@@ -40,6 +40,14 @@ docker login docker.enterprisedb.com --username k8s --password "$EDB_SUBSCRIPTIO
 ./00-provision.sh
 ```
 
+`./00-provision.sh` runs `./00-prereq.sh` first, which checks Docker is
+installed/running and actually verifies both `EDB_SUBSCRIPTION_TOKEN` and
+`NVIDIA_API_KEY` against the real services (not just "is it set") — catching a
+rotated/expired token in a few seconds with a clear message, instead of
+partway through a slow docker build or a confusing chat failure later. Run it
+on its own any time (`./00-prereq.sh`) if something that used to work suddenly
+doesn't — token rotation is a common, easy-to-miss cause.
+
 Once it's up:
 
 | URL                            | What                                  |
